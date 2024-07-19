@@ -1,5 +1,6 @@
 const express = require("express");
 const dotenv = require("dotenv");
+const mongoose = require("mongoose");
 const app = express();
 
 // Load environment variables from .env file
@@ -280,6 +281,71 @@ app.get("/products", (req, res) => {
   ];
   res.status(200).json(products);
 });
+
+function dbConnect() {
+  mongoose
+    .connect(process.env.mongo_URL || "mongodb://127.0.0.1:27017")
+    .then(() => {
+      console.log("Database connected succesfully");
+    })
+    .catch((err) => {
+      console.log("Data base not connected");
+    });
+}
+
+dbConnect();
+
+const userSchema = new mongoose.Schema({
+  name: String,
+  email: String,
+  password: String,
+});
+const companySchema = new mongoose.Schema({
+  company: String,
+  address: String,
+  city: String,
+  county: String,
+  state: String,
+  zip: Number,
+  email: String,
+  web: String,
+});
+
+let Companies = mongoose.model("Companies", companySchema);
+
+app.get("/companies", async (req, res) => {
+  try {
+    let companies = await Companies.find({});
+    res.json(companies);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error });
+  }
+});
+
+app.get("/companies/:id", async (req, res) => {
+  try {
+    let id = req.params.id;
+    let company = await Companies.findById(id);
+    if (!company) {
+      return res.status(404).json({ message: "Company not found" });
+    }
+    res.json(company);
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error });
+  }
+});
+
+app.delete("/companies/:id", async (req, res) => {
+  try {
+    let id = req.params.id;
+    let company = await Companies.findByIdAndDelete(id);
+    res.json(company);
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+let Users = mongoose.model("Users", userSchema);
 
 const port = process.env.port || 8000;
 const host = process.env.host || "localhost";
